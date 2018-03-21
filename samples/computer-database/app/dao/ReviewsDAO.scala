@@ -11,8 +11,7 @@ import slick.jdbc.JdbcProfile
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton()
-class ReviewsDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit executionContext: ExecutionContext) extends CompaniesComponent
-    with HasDatabaseConfigProvider[JdbcProfile] {
+class ReviewsDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit executionContext: ExecutionContext) extends HasDatabaseConfigProvider[JdbcProfile] {
   import profile.api._
 
   class Reviews(tag: Tag) extends Table[Review](tag, "REVIEW") {
