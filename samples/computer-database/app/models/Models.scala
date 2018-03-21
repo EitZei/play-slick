@@ -7,6 +7,24 @@ case class Page[A](items: Seq[A], page: Int, offset: Long, total: Long) {
   lazy val next = Option(page + 1).filter(_ => (offset + items.size) < total)
 }
 
-case class Company(id: Option[Long], name: String)
+case class Company(
+  id: Option[Long],
+  name: String
+)
 
-case class Computer(id: Option[Long] = None, name: String, introduced: Option[Date] = None, discontinued: Option[Date] = None, companyId: Option[Long] = None)
+case class Computer(
+  id: Option[Long] = None,
+  name: String,
+  introduced: Option[Date] = None,
+  discontinued: Option[Date] = None,
+  companyId: Option[Long] = None
+)
+
+case class Review(
+  id: Option[Long],
+  username: String,
+  timestamp: Date,
+  score: Int,
+  comment: String,
+  computerId: Long
+)

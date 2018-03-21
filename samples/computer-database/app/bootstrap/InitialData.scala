@@ -1,10 +1,11 @@
 package bootstrap
 
 import java.text.SimpleDateFormat
-import javax.inject.Inject
+import java.util.Date
 
-import dao.{ CompaniesDAO, ComputersDAO }
-import models.{ Company, Computer }
+import javax.inject.Inject
+import dao.{ CompaniesDAO, ComputersDAO, ReviewsDAO }
+import models.{ Company, Computer, Review }
 
 import scala.concurrent.{ Await, ExecutionContext }
 import scala.concurrent.duration.Duration
@@ -13,7 +14,8 @@ import scala.util.Try
 /** Initial set of data to be imported into the sample application. */
 private[bootstrap] class InitialData @Inject() (
     companiesDao: CompaniesDAO,
-    computersDao: ComputersDAO
+    computersDao: ComputersDAO,
+    reviewsDao: ReviewsDAO
 )(implicit executionContext: ExecutionContext) {
 
   def insert(): Unit = {
@@ -21,6 +23,7 @@ private[bootstrap] class InitialData @Inject() (
       count <- computersDao.count() if count == 0
       _ <- companiesDao.insert(InitialData.companies)
       _ <- computersDao.insert(InitialData.computers)
+      _ <- reviewsDao.insert(InitialData.reviews)
     } yield ()
 
     Try(Await.result(insertInitialDataFuture, Duration.Inf))
@@ -652,5 +655,13 @@ private[bootstrap] object InitialData {
     Computer(Option(572L), "Dell Vostro", None, None, None),
     Computer(Option(573L), "Gateway LT3103U", Option(sdf.parse("2008-01-01")), None, None),
     Computer(Option(574L), "iPhone 4S", Option(sdf.parse("2011-10-14")), None, Option(1L))
+  )
+
+  def reviews = Seq(
+    Review(Option(1L), "username1", sdf.parse("2011-10-15"), 5, "Very nice!", 574L),
+    Review(Option(2L), "username2", sdf.parse("2011-10-16"), 10, "Awesome!", 574L),
+    Review(Option(3L), "username3", sdf.parse("2011-10-17"), 2, "Bad results!", 574L),
+    Review(Option(4L), "username4", sdf.parse("2011-10-18"), 5, "Such a phone!", 574L),
+    Review(Option(5L), "username5", sdf.parse("2011-10-19"), 7, "Thicc!", 574L)
   )
 }

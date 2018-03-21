@@ -1,21 +1,21 @@
 package controllers
 
 import javax.inject.Inject
-
-import dao.{ CompaniesDAO, ComputersDAO }
-import models.Computer
+import dao.{ CompaniesDAO, ComputersDAO, ReviewsDAO }
+import models.{ Computer, Review }
 import play.api.data.Form
-import play.api.data.Forms.{ date, longNumber, mapping, nonEmptyText, optional }
+import play.api.data.Forms.{ date, longNumber, mapping, nonEmptyText, optional, number }
 import play.api.i18n.I18nSupport
 import play.api.mvc.{ AbstractController, ControllerComponents, Flash, RequestHeader }
 import views.html
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ ExecutionContext, Future }
 
 /** Manage a database of computers. */
 class Application @Inject() (
     companiesDao: CompaniesDAO,
     computersDao: ComputersDAO,
+    reviewsDao: ReviewsDAO,
     controllerComponents: ControllerComponents
 )(implicit executionContext: ExecutionContext) extends AbstractController(controllerComponents) with I18nSupport {
 
@@ -31,6 +31,17 @@ class Application @Inject() (
       "discontinued" -> optional(date("yyyy-MM-dd")),
       "company" -> optional(longNumber)
     )(Computer.apply)(Computer.unapply)
+  )
+
+  val reviewForm = Form(
+    mapping(
+      "id" -> optional(longNumber),
+      "username" -> nonEmptyText,
+      "timestamp" -> date("yyyy-MM-dd"),
+      "score" -> number,
+      "comment" -> nonEmptyText,
+      "computer" -> longNumber
+    )(Review.apply)(Review.unapply)
   )
 
   // -- Actions
@@ -59,12 +70,16 @@ class Application @Inject() (
     val computerAndOptions = for {
       computer <- computersDao.findById(id)
       options <- companiesDao.options()
-    } yield (computer, options)
+      reviews <- computer match {
+        case Some(c) => reviewsDao.reviewsForComputer(c)
+        case None => Future.successful(Seq())
+      }
+    } yield (computer, options, reviews)
 
     computerAndOptions.map {
-      case (computer, options) =>
+      case (computer, options, reviews) =>
         computer match {
-          case Some(c) => Ok(html.editForm(id, computerForm.fill(c), options))
+          case Some(c) => Ok(html.editForm(id, computerForm.fill(c), options, reviews))
           case None => NotFound
         }
     }
@@ -77,7 +92,14 @@ class Application @Inject() (
    */
   def update(id: Long) = Action.async { implicit rs =>
     computerForm.bindFromRequest.fold(
-      formWithErrors => companiesDao.options().map(options => BadRequest(html.editForm(id, formWithErrors, options))),
+      formWithErrors => {
+        val optionsAndReviews = for {
+          options <- companiesDao.options()
+          reviews <- reviewsDao.reviewsForComputerId(id)
+        } yield (options, reviews)
+
+        optionsAndReviews.map({ case (options, reviews) => BadRequest(html.editForm(id, formWithErrors, options, reviews)) })
+      },
       computer => {
         for {
           _ <- computersDao.update(id, computer)
@@ -93,6 +115,17 @@ class Application @Inject() (
 
   /** Handle the 'new computer form' submission. */
   def save = Action.async { implicit rs =>
+    computerForm.bindFromRequest.fold(
+      formWithErrors => companiesDao.options().map(options => BadRequest(html.createForm(formWithErrors, options))),
+      computer => {
+        for {
+          _ <- computersDao.insert(computer)
+        } yield Home.flashing("success" -> "Computer %s has been created".format(computer.name))
+      }
+    )
+  }
+
+  def saveReview = Action.async { implicit rs =>
     computerForm.bindFromRequest.fold(
       formWithErrors => companiesDao.options().map(options => BadRequest(html.createForm(formWithErrors, options))),
       computer => {

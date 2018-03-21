@@ -26,6 +26,9 @@ class CompaniesDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
   val companies = TableQuery[Companies]
 
+  def getById(id: Long): Future[Option[Company]] =
+    db.run(companies.filter(_.id === id).result.headOption)
+
   /** Construct the Map[String,String] needed to fill a select options set */
   def options(): Future[Seq[(String, String)]] = {
     val query = (for {

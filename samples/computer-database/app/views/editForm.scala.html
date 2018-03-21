@@ -1,4 +1,4 @@
-@(id: Long, computerForm: Form[Computer], companies : Seq[(String, String)])(implicit messages: Messages)
+@(id: Long, computerForm: Form[Computer], companies : Seq[(String, String)], reviews : Seq[Review])(implicit messages: Messages)
 
 @import helper._
 
@@ -35,5 +35,24 @@
     @form(routes.Application.delete(id), 'class -> "topRight") {
         <input type="submit" value="Delete this computer" class="btn danger">
     }
-    
+
+    <h2>Reviews</h2>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Username</th>
+            <th>Score</th>
+            <th>Comment</th>
+
+    @reviews.map {
+        case review => {
+            <tr>
+                <td>@review.timestamp.format("dd MMM yyyy")</td>
+                <td>@review.username</td>
+                <td>@review.score</td>
+                <td>@review.comment</td>
+            </tr>
+        }
+    }
+    </table>
 }
