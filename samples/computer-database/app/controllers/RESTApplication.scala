@@ -22,14 +22,15 @@ class RESTApplication @Inject() (
     )
   }
 
-  implicit val computerWrites = new Writes[(Computer, Company)] {
-    def writes(computerAndCompany: (Computer, Company)) = computerAndCompany match {
-      case (computer, company) => Json.obj(
+  implicit val computerWrites = new Writes[(Computer, Company, Int)] {
+    def writes(computerAndCompany: (Computer, Company, Int)) = computerAndCompany match {
+      case (computer, company, reviewCount) => Json.obj(
         "id" -> computer.id,
         "name" -> computer.name,
         "introduced" -> computer.introduced,
         "discontinued" -> computer.discontinued,
-        "company" -> company
+        "company" -> company,
+        "reviewCount" -> reviewCount
       )
     }
   }
@@ -48,15 +49,17 @@ class RESTApplication @Inject() (
       .map(page => Ok(Json.toJson(page.items)))
   }
 
+  // TODO: Add review count
   def getComputer(id: Long) = Action.async { implicit request =>
     val computerAndCompany = for {
       computer <- computersDao.findById(id)
       company <- computer.flatMap(_.companyId).map(companiesDao.getById).get
-    } yield (computer, company)
+      reviews <- computer.map(reviewsDao.reviewsForComputer).get
+    } yield (computer, company, reviews.length)
 
     computerAndCompany.map {
-      case (Some(computer), Some(company)) => Ok(Json.toJson((computer, company)))
-      case (None, _) => NotFound
+      case (Some(computer), Some(company), reviewCount) => Ok(Json.toJson((computer, company, reviewCount)))
+      case (None, _, _) => NotFound
     }
   }
 

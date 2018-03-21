@@ -10,8 +10,7 @@ import slick.jdbc.JdbcProfile
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-@Singleton()
-class ReviewsDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit executionContext: ExecutionContext) extends HasDatabaseConfigProvider[JdbcProfile] {
+trait ReviewsComponent { self: HasDatabaseConfigProvider[JdbcProfile] =>
   import profile.api._
 
   class Reviews(tag: Tag) extends Table[Review](tag, "REVIEW") {
@@ -27,6 +26,11 @@ class ReviewsDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     def * = (id.?, username, timestamp, score, comment, computerId) <> (Review.tupled, Review.unapply _)
   }
+}
+
+@Singleton()
+class ReviewsDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit executionContext: ExecutionContext) extends ReviewsComponent with HasDatabaseConfigProvider[JdbcProfile] {
+  import profile.api._
 
   private val reviews = TableQuery[Reviews]
 

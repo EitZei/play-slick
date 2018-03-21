@@ -1,4 +1,4 @@
-@(currentPage: Page[(Computer, Company)], currentOrderBy: Int, currentFilter: String)(implicit request: play.api.mvc.RequestHeader, flash: play.api.mvc.Flash, messages: Messages)
+@(currentPage: Page[(Computer, Company, Int)], currentOrderBy: Int, currentFilter: String)(implicit request: play.api.mvc.RequestHeader, flash: play.api.mvc.Flash, messages: Messages)
 
 @****************************************
 * Helper generating navigation links    *
@@ -49,12 +49,13 @@
                     @header(3, "Introduced")
                     @header(4, "Discontinued")
                     @header(5, "Company")
+                    @header(6, "Review count")
                 </tr>
             </thead>
             <tbody>
 
                 @computers.map { 
-                    case (computer, company) => {
+                    case (computer, company, reviewCount) => {
                         <tr>
                             <td><a href="@routes.Application.edit(computer.id.get)">@computer.name</a></td>
                             <td>
@@ -65,6 +66,9 @@
                             </td>
                             <td>
                                 @company.name
+                            </td>
+                            <td>
+                                @reviewCount
                             </td>
                         </tr>
                     }
@@ -110,4 +114,3 @@
         
 }
 
-            

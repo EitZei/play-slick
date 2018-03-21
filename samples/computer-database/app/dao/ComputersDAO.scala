@@ -11,7 +11,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton()
 class ComputersDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit executionContext: ExecutionContext) extends CompaniesComponent
-    with HasDatabaseConfigProvider[JdbcProfile] {
+    with ReviewsComponent with HasDatabaseConfigProvider[JdbcProfile] {
   import profile.api._
 
   class Computers(tag: Tag) extends Table[Computer](tag, "COMPUTER") {
@@ -29,6 +29,7 @@ class ComputersDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
   private val computers = TableQuery[Computers]
   private val companies = TableQuery[Companies]
+  private val reviews = TableQuery[Reviews]
 
   /** Retrieve a computer from the id. */
   def findById(id: Long): Future[Option[Computer]] =
@@ -47,20 +48,23 @@ class ComputersDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   }
 
   /** Return a page of (Computer,Company) */
-  def list(page: Int = 0, pageSize: Int = 10, orderBy: Int = 1, filter: String = "%"): Future[Page[(Computer, Company)]] = {
+  def list(page: Int = 0, pageSize: Int = 10, orderBy: Int = 1, filter: String = "%"): Future[Page[(Computer, Company, Int)]] = {
+
+    def countReviews(computerId: Rep[Long]): Rep[Int] =
+      reviews.filter(_.computerId === computerId).length
 
     val offset = pageSize * page
     val query =
       (for {
         (computer, company) <- computers joinLeft companies on (_.companyId === _.id)
         if computer.name.toLowerCase like filter.toLowerCase
-      } yield (computer, company.map(_.id), company.map(_.name)))
+      } yield (computer, company.map(_.id), company.map(_.name), countReviews(computer.id)))
         .drop(offset)
         .take(pageSize)
 
     for {
       totalRows <- count(filter)
-      list = query.result.map { rows => rows.collect { case (computer, id, Some(name)) => (computer, Company(id, name)) } }
+      list = query.result.map { rows => rows.collect { case (computer, id, Some(name), reviewCount) => (computer, Company(id, name), reviewCount) } }
       result <- db.run(list)
     } yield Page(result, page, offset, totalRows)
   }
