@@ -49,7 +49,7 @@ class RESTApplication @Inject() (
       .map(page => Ok(Json.toJson(page.items)))
   }
 
-  // TODO: Add review count
+  // TODO: Fix problem with missing values. Using .get of course throws if there are none.
   def getComputer(id: Long) = Action.async { implicit request =>
     val computerAndCompany = for {
       computer <- computersDao.findById(id)
